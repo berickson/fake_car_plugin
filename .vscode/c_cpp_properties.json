@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/brian/simulation_ws/devel/include",
+                "/opt/ros/melodic/include",
+                "/home/brian/simulation_ws/src/ackermann_controller/include",
+                "/home/brian/simulation_ws/src/fake_car_plugin/include",
+                "/home/brian/simulation_ws/src/fake_car_cpp/include",
+                "/home/brian/simulation_ws/src/teleop_twist_joy/include",
+                "/home/brian/simulation_ws/src/turtlebot3_simulations/turtlebot3_fake/include",
+                "/home/brian/simulation_ws/src/turtlebot3_simulations/turtlebot3_gazebo/include",
+                "/home/brian/simulation_ws/src/turtlebot3/turtlebot3_slam/include",
+                "/usr/include"
+            ],
+            "name": "Linux",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}

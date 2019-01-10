@@ -1,7 +1,11 @@
 <launch>
-  <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
-  <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find fake_car_plugin)/worlds/hello.world"/>
-    <!-- more default parameters can be changed here -->
-  </include>
+    <param name="robot_description" textfile="$(find fake_car)/fake_car.urdf"/>
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
+        args="-param robot_description -urdf -model fake_car" />
+
+
+    <!-- Start Gazebo with an empty world -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch"/>
+
+    
 </launch>
