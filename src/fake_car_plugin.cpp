@@ -99,12 +99,12 @@ namespace gazebo  {
 
             fl_sub = ros_node->subscribe<std_msgs::Float32>(
                 "/" + model->GetName() + "/fl_str",
-                1,
+                2,
                 &FakeCarPlugin::on_fl_str, this);
 
             fr_sub = ros_node->subscribe<std_msgs::Float32>(
                 "/" + model->GetName() + "/fr_str",
-                1,
+                2,
                 &FakeCarPlugin::on_fr_str, this);
 /*
             rosSub = ros_node->subscribe(ros::SubscribeOptions::create<std_msgs::Float32>(
