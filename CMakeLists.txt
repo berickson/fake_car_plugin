@@ -5,6 +5,10 @@ project(fake_car_plugin)
 find_package(catkin REQUIRED COMPONENTS 
   roscpp 
   gazebo_ros 
+  ackermann_msgs
+  geometry_msgs
+  sensor_msgs
+  std_msgs
 )
 
 # Depend on system install of Gazebo
