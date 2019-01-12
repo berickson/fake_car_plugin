@@ -89,25 +89,25 @@ namespace gazebo  {
 
 
 
-        private: physics::ModelPtr model;
-        private: Physics::JointControllerPtr jc;
-        private: physics::JointPtr fl_str_joint;
-        private: physics::JointPtr fr_str_joint;
-        private: physics::JointPtr fl_axle_joint;
-        private: physics::JointPtr fr_axle_joint;
-        private: physics::JointPtr bl_axle_joint;
-        private: physics::JointPtr br_axle_joint;
+        physics::ModelPtr model;
+        physics::JointControllerPtr jc;
+        physics::JointPtr fl_str_joint;
+        physics::JointPtr fr_str_joint;
+        physics::JointPtr fl_axle_joint;
+        physics::JointPtr fr_axle_joint;
+        physics::JointPtr bl_axle_joint;
+        physics::JointPtr br_axle_joint;
 
-        private: common::PID fl_pid, fr_pid, bl_pid, br_pid;
-        private: std::unique_ptr<ros::NodeHandle> n;
-        private: ros::Subscriber fl_sub, fr_sub, ackermann_sub, twist_sub, joy_sub;
-        private: ros::Publisher odo_fl_pub, odo_fr_pub;
+        common::PID fl_pid, fr_pid, bl_pid, br_pid;
+        std::unique_ptr<ros::NodeHandle> n;
+        ros::Subscriber fl_sub, fr_sub, ackermann_sub, twist_sub, joy_sub;
+        ros::Publisher odo_fl_pub, odo_fr_pub, ackermann_pub;
 
-        private: ros::CallbackQueue ros_queue;
+        ros::CallbackQueue ros_queue;
 
-        private: std::thread ros_queue_thread;
+        std::thread ros_queue_thread;
 
-        private: void publish_state(){
+        void publish_state(){
             const int ticks_per_revolution = 42;
 
             std_msgs::Int32 odo_fl;
@@ -119,9 +119,6 @@ namespace gazebo  {
             odo_fr_pub.publish(odo_fr);
         }
 
-
-        ros::Publisher ackermann_pub;
-
         void joy_callback(sensor_msgs::Joy msg) {
             ackermann_msgs::AckermannDriveStamped ad;
             ad.drive.steering_angle = msg.axes[3];
@@ -132,27 +129,27 @@ namespace gazebo  {
         void ackermann_callback(ackermann_msgs::AckermannDriveStamped msg) {
             car_model.set_steer_angle(msg.drive.steering_angle);
 
-            model->GetJointController()->SetPositionTarget(
+            jc->SetPositionTarget(
                 fl_str_joint->GetScopedName(), car_model.get_left_bicycle().get_steer_angle());
 
-            model->GetJointController()->SetPositionTarget(
+            jc->SetPositionTarget(
                 fr_str_joint->GetScopedName(), car_model.get_right_bicycle().get_steer_angle());
 
             double curvature = car_model.get_rear_curvature();
             double speed = msg.drive.speed;
             if(curvature == 0){
-                model->GetJointController()->SetVelocityTarget(
+                jc->SetVelocityTarget(
                     bl_axle_joint->GetScopedName(), speed);
-                model->GetJointController()->SetVelocityTarget(
+                jc->SetVelocityTarget(
                     br_axle_joint->GetScopedName(), speed);
             } else {
                 double radius = 1./curvature;
                 double left_radius = radius - rear_wheelbase_width / 2.;
                 double right_radius = radius + rear_wheelbase_width / 2.;
 
-                model->GetJointController()->SetVelocityTarget(
+                jc->SetVelocityTarget(
                     bl_axle_joint->GetScopedName(), speed*left_radius/radius);
-                model->GetJointController()->SetVelocityTarget(
+                jc->SetVelocityTarget(
                     br_axle_joint->GetScopedName(), speed*right_radius/radius);
             }
         }
@@ -173,12 +170,11 @@ namespace gazebo  {
 
         private: void QueueThread()
         {
-            static const double timeout = 0.001;
             ros::Rate loop_rate(100);
 
             while (n->ok())
             {
-                ros_queue.callAvailable(ros::WallDuration(timeout));
+                ros_queue.callAvailable();
                 publish_state();
                 loop_rate.sleep();
             }
@@ -199,21 +195,22 @@ namespace gazebo  {
                 return;
             }
 
-            ROS_INFO("Connected to model %s", model->GetName().c_str());
             model = _model;
-            jc = model.GetJointController();
+            ROS_INFO("Connected to model %s", model->GetName().c_str());
+            
+            jc = model->GetJointController();
 
             // front left str
             fl_pid = common::PID(1, 0, 0);
             fl_str_joint  = model->GetJoint("front_left_wheel_steer_joint");
 
-            model->GetJointController()->SetPositionPID(
+            jc->SetPositionPID(
                 fl_str_joint->GetScopedName(), fl_pid);
 
             // front right str            
             fr_pid = common::PID(1, 0, 0);
             fr_str_joint  = _model->GetJoint("front_right_wheel_steer_joint");
-            model->GetJointController()->SetPositionPID(
+            jc->SetPositionPID(
                 fr_str_joint->GetScopedName(), fr_pid);
 
             fl_axle_joint = model->GetJoint("front_left_wheel_joint");
@@ -222,13 +219,13 @@ namespace gazebo  {
             // back left speed
             bl_pid = common::PID(0.1, 0.01, 0.0);
             bl_axle_joint = model->GetJoint("back_left_wheel_joint");
-            model->GetJointController()->SetVelocityPID(
+            jc->SetVelocityPID(
                 bl_axle_joint->GetScopedName(), bl_pid);
             
 
             br_pid = common::PID(0.1, 0.01, 0.0);
             br_axle_joint = model->GetJoint("back_right_wheel_joint");
-            model->GetJointController()->SetVelocityPID(
+            jc->SetVelocityPID(
                 br_axle_joint->GetScopedName(), br_pid);
             
 
