@@ -1,0 +1,11 @@
+<launch>
+    <!-- load the bot into the parameter server -->
+    <param name="robot_description" textfile="$(find fake_car)/fake_car.urdf"/>
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
+        args="-param robot_description -urdf -model fake_car" />
+
+    <include file="$(find gazebo_ros)/launch/empty_world.launch"/>
+    <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui"/>
+    <node name="joy_node" pkg="joy" type="joy_node"/>
+    <!-- <node name="fake_car_server" pkg="fake_car" type="fake_car_server.py"/> -->
+</launch>
