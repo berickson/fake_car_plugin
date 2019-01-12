@@ -90,13 +90,17 @@ namespace gazebo  {
 
 
         private: physics::ModelPtr model;
+        private: Physics::JointControllerPtr jc;
         private: physics::JointPtr fl_str_joint;
         private: physics::JointPtr fr_str_joint;
         private: physics::JointPtr fl_axle_joint;
         private: physics::JointPtr fr_axle_joint;
-        private: common::PID fl_pid, fr_pid;
-        private: std::unique_ptr<ros::NodeHandle> ros_node;
-        private: ros::Subscriber rosSub, fl_sub, fr_sub, ackermann_sub, twist_sub, joy_sub;
+        private: physics::JointPtr bl_axle_joint;
+        private: physics::JointPtr br_axle_joint;
+
+        private: common::PID fl_pid, fr_pid, bl_pid, br_pid;
+        private: std::unique_ptr<ros::NodeHandle> n;
+        private: ros::Subscriber fl_sub, fr_sub, ackermann_sub, twist_sub, joy_sub;
         private: ros::Publisher odo_fl_pub, odo_fr_pub;
 
         private: ros::CallbackQueue ros_queue;
@@ -117,53 +121,40 @@ namespace gazebo  {
 
 
         ros::Publisher ackermann_pub;
-        ros::Publisher front_right_steer_pub;
-        ros::Publisher front_left_steer_pub;
-        ros::Publisher back_left_speed_pub;
-        ros::Publisher back_right_speed_pub;
-
 
         void joy_callback(sensor_msgs::Joy msg) {
             ackermann_msgs::AckermannDriveStamped ad;
             ad.drive.steering_angle = msg.axes[3];
             ad.drive.speed = msg.axes[1] * 100;
             ackermann_pub.publish(ad);
-            ROS_INFO("joy_callback");
         }
 
         void ackermann_callback(ackermann_msgs::AckermannDriveStamped msg) {
             car_model.set_steer_angle(msg.drive.steering_angle);
 
-            std_msgs::Float64 right_angle;
-            right_angle.data = car_model.get_right_bicycle().get_steer_angle();
-            front_right_steer_pub.publish(right_angle);
+            model->GetJointController()->SetPositionTarget(
+                fl_str_joint->GetScopedName(), car_model.get_left_bicycle().get_steer_angle());
 
-            std_msgs::Float64 left_angle;
-            left_angle.data = car_model.get_left_bicycle().get_steer_angle();
-            front_left_steer_pub.publish(left_angle);
+            model->GetJointController()->SetPositionTarget(
+                fr_str_joint->GetScopedName(), car_model.get_right_bicycle().get_steer_angle());
 
-            
             double curvature = car_model.get_rear_curvature();
+            double speed = msg.drive.speed;
             if(curvature == 0){
-                std_msgs::Float64 center_speed;
-                center_speed.data = msg.drive.speed;
-                back_left_speed_pub.publish(center_speed);
-                back_right_speed_pub.publish(center_speed);
+                model->GetJointController()->SetVelocityTarget(
+                    bl_axle_joint->GetScopedName(), speed);
+                model->GetJointController()->SetVelocityTarget(
+                    br_axle_joint->GetScopedName(), speed);
             } else {
                 double radius = 1./curvature;
                 double left_radius = radius - rear_wheelbase_width / 2.;
                 double right_radius = radius + rear_wheelbase_width / 2.;
 
-                std_msgs::Float64 left_speed;
-                std_msgs::Float64 right_speed;
-
-                left_speed.data = msg.drive.speed*left_radius/radius;
-                right_speed.data = msg.drive.speed*right_radius/radius;
-
-                back_left_speed_pub.publish(left_speed);
-                back_right_speed_pub.publish(right_speed);
+                model->GetJointController()->SetVelocityTarget(
+                    bl_axle_joint->GetScopedName(), speed*left_radius/radius);
+                model->GetJointController()->SetVelocityTarget(
+                    br_axle_joint->GetScopedName(), speed*right_radius/radius);
             }
-            ROS_INFO("ackermann_callback");
         }
 
         void twist_callback(geometry_msgs::Twist msg) {
@@ -180,24 +171,12 @@ namespace gazebo  {
             ackermann_pub.publish(ad);
         }
 
-        public: void on_fl_str(const std_msgs::Float64ConstPtr &_msg)
-        {
-            model->GetJointController()->SetPositionTarget(
-                fl_str_joint->GetScopedName(), _msg->data);
-        }
-
-        public: void on_fr_str(const std_msgs::Float64ConstPtr &_msg)
-        {
-            model->GetJointController()->SetPositionTarget(
-                fr_str_joint->GetScopedName(), _msg->data);
-        }
-
         private: void QueueThread()
         {
             static const double timeout = 0.001;
             ros::Rate loop_rate(100);
 
-            while (ros_node->ok())
+            while (n->ok())
             {
                 ros_queue.callAvailable(ros::WallDuration(timeout));
                 publish_state();
@@ -219,31 +198,40 @@ namespace gazebo  {
                     << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so' in the gazebo_ros package)");
                 return;
             }
-            ROS_INFO("hello fake_car!");
 
-            ROS_INFO("Connected to model %s", _model->GetName().c_str());
+            ROS_INFO("Connected to model %s", model->GetName().c_str());
             model = _model;
+            jc = model.GetJointController();
 
             // front left str
             fl_pid = common::PID(1, 0, 0);
-            ROS_INFO("created pid");
-            fl_str_joint  = _model->GetJoint("front_left_wheel_steer_joint");
-            ROS_INFO("Found fl_str_joint %s", fl_str_joint->GetScopedName().c_str());
+            fl_str_joint  = model->GetJoint("front_left_wheel_steer_joint");
 
             model->GetJointController()->SetPositionPID(
                 fl_str_joint->GetScopedName(), fl_pid);
 
             // front right str            
             fr_pid = common::PID(1, 0, 0);
-            ROS_INFO("created pid");
             fr_str_joint  = _model->GetJoint("front_right_wheel_steer_joint");
-            ROS_INFO("Found fr_str_joint %s", fr_str_joint->GetScopedName().c_str());
-
-            fl_axle_joint = _model->GetJoint("front_left_wheel_joint");
-            fr_axle_joint = _model->GetJoint("front_right_wheel_joint");
-
             model->GetJointController()->SetPositionPID(
                 fr_str_joint->GetScopedName(), fr_pid);
+
+            fl_axle_joint = model->GetJoint("front_left_wheel_joint");
+            fr_axle_joint = model->GetJoint("front_right_wheel_joint");
+
+            // back left speed
+            bl_pid = common::PID(0.1, 0.01, 0.0);
+            bl_axle_joint = model->GetJoint("back_left_wheel_joint");
+            model->GetJointController()->SetVelocityPID(
+                bl_axle_joint->GetScopedName(), bl_pid);
+            
+
+            br_pid = common::PID(0.1, 0.01, 0.0);
+            br_axle_joint = model->GetJoint("back_right_wheel_joint");
+            model->GetJointController()->SetVelocityPID(
+                br_axle_joint->GetScopedName(), br_pid);
+            
+
 
             if (!ros::isInitialized())
             {
@@ -254,37 +242,21 @@ namespace gazebo  {
             }
 
             
-            ros_node.reset(new ros::NodeHandle("fake_car_plugin"));
+            n.reset(new ros::NodeHandle("fake_car_plugin"));
 
             // publish
-            odo_fl_pub = ros_node->advertise<std_msgs::Int32>("/" + model->GetName() + "/odo_fl", 10);
-            odo_fr_pub = ros_node->advertise<std_msgs::Int32>("/" + model->GetName() + "/odo_fr", 10);
-            ackermann_pub = ros_node->advertise<ackermann_msgs::AckermannDriveStamped>("/cmd_ackermann", 10);
-            front_right_steer_pub = ros_node->advertise<std_msgs::Float64>("/fake_car/fr_str", 10);
-            front_left_steer_pub = ros_node->advertise<std_msgs::Float64>("/fake_car/fl_str", 10);
-
-            back_left_speed_pub = ros_node->advertise<std_msgs::Float64>("/fake_car/back_left_wheel_velocity_controller/command", 10);
-            back_right_speed_pub = ros_node->advertise<std_msgs::Float64>("/fake_car/back_right_wheel_velocity_controller/command", 10);
+            odo_fl_pub = n->advertise<std_msgs::Int32>("/" + model->GetName() + "/odo_fl", 10);
+            odo_fr_pub = n->advertise<std_msgs::Int32>("/" + model->GetName() + "/odo_fr", 10);
+            ackermann_pub = n->advertise<ackermann_msgs::AckermannDriveStamped>("/" + model->GetName() + "/cmd_ackermann", 10);
 
             // subscribe
-
-            fl_sub = ros_node->subscribe<std_msgs::Float64>(
-                "/" + model->GetName() + "/fl_str",
-                2,
-                &FakeCarPlugin::on_fl_str, this);
-
-            fr_sub = ros_node->subscribe<std_msgs::Float64>(
-                "/" + model->GetName() + "/fr_str",
-                2,
-                &FakeCarPlugin::on_fr_str, this);
-
-            joy_sub = ros_node->subscribe<sensor_msgs::Joy>(
+            joy_sub = n->subscribe<sensor_msgs::Joy>(
                 "/joy",
                 2,
                 &FakeCarPlugin::joy_callback, this);
 
-            ackermann_sub = ros_node->subscribe<ackermann_msgs::AckermannDriveStamped>(
-                "/cmd_ackermann",
+            ackermann_sub = n->subscribe<ackermann_msgs::AckermannDriveStamped>(
+                "/" + model->GetName() + "/cmd_ackermann",
                 2,
                 &FakeCarPlugin::ackermann_callback, this);
 
