@@ -1,6 +1,10 @@
 <launch>
     <!-- load the bot into the parameter server -->
-    <param name="robot_description" textfile="$(find fake_car)/fake_car.urdf"/>
+    <param name="robot_description"
+      command="xacro '$(find fake_car_plugin)/fake_car.urdf.xacro'" 
+    />
+
+    <!--<param name="robot_description" textfile="$(find fake_car)/fake_car.urdf"/>-->
     <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
         args="-param robot_description -urdf -model fake_car" />
 
