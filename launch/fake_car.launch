@@ -1,5 +1,9 @@
 <launch>
     <!-- load the bot into the parameter server -->
+    
+    <!-- Can validate with below:
+    check_urdf <(xacro fake_car.urdf.xacro) 
+    -->
     <param name="robot_description"
       command="xacro '$(find fake_car_plugin)/fake_car.urdf.xacro'" 
     />

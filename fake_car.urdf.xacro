@@ -2,56 +2,80 @@
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="fake_car">
   <xacro:property name="wheel_radius" value="0.056"/>
   <xacro:property name="wheel_width" value="0.047"/>
+  <xacro:property name="wheel_friction" value="0.8"/>
   <xacro:property name="wheelbase_length" value="0.3429"/>
   <xacro:property name="front_wheelbase_width" value="0.25"/>
   <xacro:property name="rear_wheelbase_width" value="0.25"/>
   <xacro:property name="wheel_mass" value="0.1"/>
+  <xacro:property name="total_mass" value = "3.0"/>
+  <xacro:property name="chassis_height" value = "0.06"/>
+  <xacro:property name="chassis_elevation" value = "0.03"/>
+  <xacro:property name="chassis_mass" value = "${total_mass-4*wheel_mass}"/>
 
-  <macro name="cylinder_inertia" params="m r h">
+  <xacro:macro name="cylinder_inertia" params="m r h">
         <inertia  ixx="${m*(3*r*r+h*h)/12}" ixy = "0" ixz = "0"
                     iyy="${m*(3*r*r+h*h)/12}" iyz = "0"
                     izz="${m*r*r/2}" /> 
-  </macro>
+  </xacro:macro>
 
-  <macro name="box_inertia" params="m x y z">
+  <xacro:macro name="box_inertia" params="m x y z">
           <inertia  ixx="${m*(y*y+z*z)/12}" ixy = "0" ixz = "0"
                     iyy="${m*(x*x+z*z)/12}" iyz = "0"
                     izz="${m*(x*x+z*z)/12}" /> 
-  </macro>
+  </xacro:macro>
 
-  <macro name="sphere_inertia" params="m r">
+  <xacro:macro name="sphere_inertia" params="m r">
           <inertia  ixx="${2*m*r*r/5}" ixy = "0" ixz = "0"
                     iyy="${2*m*r*r/5}" iyz = "0"
                     izz="${2*m*r*r/5}" /> 
-  </macro>
+  </xacro:macro>
 
-  <macro name="cylinder_inertial" params="m r h">
+  <xacro:macro name="cylinder_inertial" params="m r h">
     <inertial>
       <mass value="${m}"/>
-      <xacro:cylinder_inertia m="${m}" r="${r}" h="${h}"/>
+      <cylinder_inertia m="${m}" r="${r}" h="${h}"/>
     </inertial>
-  </macro>
+  </xacro:macro>
 
   
 
   <link name="base_link">
     <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
       <geometry>
-        <cylinder length="0.02" radius="0.01"/>
+        <cylinder length="0.2" radius="0.01"/>
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
       </material>
     </visual>
     <collision>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
       <geometry>
-        <cylinder length="0.02" radius="0.01"/>
+        <cylinder length="0.2" radius="0.01"/>
       </geometry>
     </collision>
     <inertial>
       <mass value="0.01"/>
       <inertia ixx="0.015" iyy="0.0375" izz="0.0375"
                ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <link name="chassis_link">
+    <visual>
+      <geometry>
+        <box size="${wheelbase_length} ${front_wheelbase_width} ${chassis_height}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${wheelbase_length} ${front_wheelbase_width} ${chassis_height}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="${chassis_mass}"/>
+      <box_inertia m="${chassis_mass}" x="${wheelbase_length}" y="${front_wheelbase_width}" z="${chassis_height}"/>
     </inertial>
   </link>
 
@@ -101,8 +125,8 @@
   <gazebo reference="laser_scanner_link">
     <sensor type="gpu_ray" name="laser_scanner">
       <pose>0 0 0 0 0 0</pose>
-      <visualize>true</visualize>
-      <update_rate>40</update_rate>
+      <visualize>false</visualize>
+      <update_rate>20</update_rate>
       <ray>
         <scan>
           <horizontal>
@@ -141,7 +165,7 @@
         <cylinder length="${wheel_width}" radius="${wheel_radius}"/>
       </geometry>
     </collision>
-    <xacro:cylinder_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
+    <cylinder_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
   </link>
 
   <link name="front_left_wheel_steer">
@@ -178,7 +202,7 @@
         <cylinder length="${wheel_width}" radius="${wheel_radius}"/>
       </geometry>
     </collision>
-    <xacro:cylinder_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
+    <cylinder_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
   </link>
 
   <link name="front_right_wheel_steer">
@@ -216,7 +240,7 @@
         <cylinder length="${wheel_width}" radius="${wheel_radius}"/>
       </geometry>
     </collision>
-    <xacro:cylinder_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
+    <cylinder_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
   </link>
 
   <joint name="back_left_wheel_joint" type="continuous">
@@ -265,17 +289,27 @@
     <origin rpy="${-pi/2} 0 0" xyz="0 0 0"/>
   </joint>
 
+  <joint name="chassis_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="chassis_link"/>
+    <origin rpy="0 0 0" xyz="${wheelbase_length/2} 0 ${chassis_height/2 + chassis_elevation}"/>
+  </joint>
+
 
   <gazebo reference="front_left_wheel">
+    <mu1>${wheel_friction}</mu1>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
   <gazebo reference="front_right_wheel">
+    <mu1>${wheel_friction}</mu1>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
   <gazebo reference="back_left_wheel">
+    <mu1>${wheel_friction}</mu1>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
   <gazebo reference="back_right_wheel">
+    <mu1>${wheel_friction}</mu1>
     <material>Gazebo/DarkGrey</material>
   </gazebo>
 
