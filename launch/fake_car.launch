@@ -5,7 +5,7 @@
     check_urdf <(xacro fake_car.urdf.xacro) 
     -->
     <param name="robot_description"
-      command="xacro '$(find fake_car_plugin)/fake_car.urdf.xacro'" 
+      command="xacro '$(find fake_car_plugin)/fake_car.urdf.xacro' wheel_diameter:=0.112" 
     />
 
     <!--<param name="robot_description" textfile="$(find fake_car)/fake_car.urdf"/>-->
