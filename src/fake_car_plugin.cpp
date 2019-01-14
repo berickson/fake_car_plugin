@@ -15,6 +15,16 @@
 #include <sstream>
 #include "math.h"
 
+double sign_of(double x) {
+    if(x>0) {
+        return 1;
+    }
+    if(x<0) {
+        return -1;
+    }
+    return 0;
+}
+
 class BicycleModel {
     double wheelbase_length;
     double steer_angle;
@@ -85,8 +95,10 @@ namespace gazebo  {
         const double wheelbase_length = 0.3429 ;
         const double front_wheelbase_width = 0.25;
         const double rear_wheelbase_width = 0.25;
-        const double shock_p = 1000;
+        const double shock_p = 250;
         const double shock_d = 30;
+        const double wheel_diameter = .112;
+        const double max_speed = 30;
         AckermannModel car_model={0.25, 0.25};
 
 
@@ -128,7 +140,7 @@ namespace gazebo  {
         void joy_callback(sensor_msgs::Joy msg) {
             ackermann_msgs::AckermannDriveStamped ad;
             ad.drive.steering_angle = msg.axes[3];
-            ad.drive.speed = msg.axes[1] * 100;
+            ad.drive.speed = pow(fabs(msg.axes[1]),2)*sign_of(msg.axes[1]) * max_speed;
             ackermann_pub.publish(ad);
         }
 
@@ -143,20 +155,23 @@ namespace gazebo  {
 
             double curvature = car_model.get_rear_curvature();
             double speed = msg.drive.speed;
+            double meters_per_rev = M_PI * wheel_diameter;
+            double revs_per_sec = speed/meters_per_rev;
+            double rads_per_sec = 2*M_PI*revs_per_sec;
             if(curvature == 0){
                 jc->SetVelocityTarget(
-                    bl_axle_joint->GetScopedName(), speed);
+                    bl_axle_joint->GetScopedName(), rads_per_sec);
                 jc->SetVelocityTarget(
-                    br_axle_joint->GetScopedName(), speed);
+                    br_axle_joint->GetScopedName(), rads_per_sec);
             } else {
                 double radius = 1./curvature;
                 double left_radius = radius - rear_wheelbase_width / 2.;
                 double right_radius = radius + rear_wheelbase_width / 2.;
 
                 jc->SetVelocityTarget(
-                    bl_axle_joint->GetScopedName(), speed*left_radius/radius);
+                    bl_axle_joint->GetScopedName(), rads_per_sec*left_radius/radius);
                 jc->SetVelocityTarget(
-                    br_axle_joint->GetScopedName(), speed*right_radius/radius);
+                    br_axle_joint->GetScopedName(), rads_per_sec*right_radius/radius);
             }
         }
 

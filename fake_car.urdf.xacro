@@ -12,7 +12,7 @@
   <xacro:property name="total_mass" value = "3.0"/>
   <xacro:property name="shock_travel" value = "0.09"/>
   <xacro:property name="chassis_height" value = "0.06"/>
-  <xacro:property name="chassis_elevation" value = "0.03"/>
+  <xacro:property name="chassis_elevation" value = "-0.01"/>
   <xacro:property name="chassis_mass" value = "${total_mass-4*wheel_mass}"/>
 
 
@@ -272,11 +272,11 @@
 
 
   <joint name="back_left_shock_joint" type="prismatic">
-    <limit lower="${-shock_travel/2}" upper="${shock_travel/2}" effort="100" velocity="100"/>
+    <limit lower="0" upper="${shock_travel}" effort="100" velocity="100"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
     <child link="back_left_wheel_shock"/>
-    <origin rpy="0 0 0" xyz="0 ${rear_wheelbase_width/2} 0"/>
+    <origin rpy="0 0 0" xyz="0 ${rear_wheelbase_width/2}  ${-shock_travel/2}"/>
   </joint>
 
   <joint name="back_left_wheel_joint" type="continuous">
@@ -313,11 +313,11 @@
 
 
   <joint name="back_right_shock_joint" type="prismatic">
-    <limit lower="${-shock_travel/2}" upper="${shock_travel/2}" effort="100" velocity="100"/>
+    <limit lower="0" upper="${shock_travel}" effort="100" velocity="100"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
     <child link="back_right_wheel_shock"/>
-    <origin rpy="0 0 0" xyz="0 ${-rear_wheelbase_width/2} 0"/>
+    <origin rpy="0 0 0" xyz="0 ${-rear_wheelbase_width/2} ${-shock_travel/2}"/>
   </joint>
 
   <joint name="back_right_wheel_joint" type="continuous">
@@ -375,20 +375,20 @@
   </link>
 
   <joint name="front_right_shock_joint" type="prismatic">
-    <limit lower="${-shock_travel/2}" upper="${shock_travel/2}" effort="100" velocity="100"/>
+    <limit lower="0" upper="${shock_travel}" effort="100" velocity="100"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
     <child link="front_right_wheel_shock"/>
-    <origin rpy="0 0 0" xyz="${wheelbase_length} ${-front_wheelbase_width/2} 0"/>
+    <origin rpy="0 0 0" xyz="${wheelbase_length} ${-front_wheelbase_width/2} ${-shock_travel/2}"/>
   </joint>
 
 
   <joint name="front_left_shock_joint" type="prismatic">
-    <limit lower="${-shock_travel/2}" upper="${shock_travel/2}" effort="100" velocity="100"/>
+    <limit lower="0" upper="${shock_travel}" effort="100" velocity="100"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
     <child link="front_left_wheel_shock"/>
-    <origin rpy="0 0 0" xyz="${wheelbase_length} ${front_wheelbase_width/2} 0"/>
+    <origin rpy="0 0 0" xyz="${wheelbase_length} ${front_wheelbase_width/2}  ${-shock_travel/2}"/>
   </joint>
 
 
