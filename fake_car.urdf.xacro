@@ -10,9 +10,11 @@
   <xacro:property name="rear_wheelbase_width" value="0.25"/>
   <xacro:property name="wheel_mass" value="0.1"/>
   <xacro:property name="total_mass" value = "3.0"/>
+  <xacro:property name="shock_travel" value = "0.09"/>
   <xacro:property name="chassis_height" value = "0.06"/>
   <xacro:property name="chassis_elevation" value = "0.03"/>
   <xacro:property name="chassis_mass" value = "${total_mass-4*wheel_mass}"/>
+
 
   <xacro:macro name="cylinder_inertia" params="m r h">
         <inertia  ixx="${m*(3*r*r+h*h)/12}" ixy = "0" ixz = "0"
@@ -245,19 +247,84 @@
     <cylinder_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
   </link>
 
-  <joint name="back_left_wheel_joint" type="continuous">
+  <link name="back_left_wheel_shock">
+      <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.2" radius="0.01"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.75 0.75 0.75 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.2" radius="0.01"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.015" iyy="0.0375" izz="0.0375"
+               ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+
+  <joint name="back_left_shock_joint" type="prismatic">
+    <limit lower="${-shock_travel/2}" upper="${shock_travel/2}" effort="100" velocity="100"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
+    <child link="back_left_wheel_shock"/>
+    <origin rpy="0 0 0" xyz="0 ${rear_wheelbase_width/2} 0"/>
+  </joint>
+
+  <joint name="back_left_wheel_joint" type="continuous">
+    <axis xyz="0 0 1"/>
+    <parent link="back_left_wheel_shock"/>
     <child link="back_left_wheel"/>
-    <origin rpy="${-pi/2} 0 0" xyz="0 ${rear_wheelbase_width/2} 0"/>
+    <origin rpy="${-pi/2} 0 0" xyz="0 0 0"/>
     <limit effort="10000" velocity="500" />
+  </joint>
+
+
+  <link name="back_right_wheel_shock">
+      <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.2" radius="0.01"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.75 0.75 0.75 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.2" radius="0.01"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.015" iyy="0.0375" izz="0.0375"
+               ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+
+  <joint name="back_right_shock_joint" type="prismatic">
+    <limit lower="${-shock_travel/2}" upper="${shock_travel/2}" effort="100" velocity="100"/>
+    <axis xyz="0 0 1"/>
+    <parent link="base_link"/>
+    <child link="back_right_wheel_shock"/>
+    <origin rpy="0 0 0" xyz="0 ${-rear_wheelbase_width/2} 0"/>
   </joint>
 
   <joint name="back_right_wheel_joint" type="continuous">
     <axis xyz="0 0 1"/>
-    <parent link="base_link"/>
+    <parent link="back_right_wheel_shock"/>
     <child link="back_right_wheel"/>
-    <origin rpy="${-pi/2} 0 0" xyz="0 ${-rear_wheelbase_width/2} 0.0"/>
+    <origin rpy="${-pi/2} 0 0" xyz="0 0 0"/>
     <limit effort="10000" velocity="500" />
   </joint>
 
@@ -284,8 +351,40 @@
     </inertial>
   </link>
 
-  <joint name="front_left_wheel_shock_joint" type="prismatic">
-    <limit lower="-0.03" upper="0.03"/>
+    <link name="front_right_wheel_shock">
+      <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.2" radius="0.01"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.75 0.75 0.75 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.2" radius="0.01"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.015" iyy="0.0375" izz="0.0375"
+               ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <joint name="front_right_shock_joint" type="prismatic">
+    <limit lower="${-shock_travel/2}" upper="${shock_travel/2}" effort="100" velocity="100"/>
+    <axis xyz="0 0 1"/>
+    <parent link="base_link"/>
+    <child link="front_right_wheel_shock"/>
+    <origin rpy="0 0 0" xyz="${wheelbase_length} ${-front_wheelbase_width/2} 0"/>
+  </joint>
+
+
+  <joint name="front_left_shock_joint" type="prismatic">
+    <limit lower="${-shock_travel/2}" upper="${shock_travel/2}" effort="100" velocity="100"/>
     <axis xyz="0 0 1"/>
     <parent link="base_link"/>
     <child link="front_left_wheel_shock"/>
@@ -311,9 +410,9 @@
   <joint name="front_right_wheel_steer_joint" type="revolute">
     <limit lower="-1" upper="1" effort="1" velocity="5"/>
     <axis xyz="0 0 1"/>
-    <parent link="base_link"/>
+    <parent link="front_right_wheel_shock"/>
     <child link="front_right_wheel_steer"/>
-    <origin rpy="0 0 0" xyz="${wheelbase_length} ${-front_wheelbase_width/2} 0"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
 
   <joint name="front_right_wheel_joint" type="continuous">

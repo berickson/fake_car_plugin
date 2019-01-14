@@ -85,6 +85,8 @@ namespace gazebo  {
         const double wheelbase_length = 0.3429 ;
         const double front_wheelbase_width = 0.25;
         const double rear_wheelbase_width = 0.25;
+        const double shock_p = 1000;
+        const double shock_d = 30;
         AckermannModel car_model={0.25, 0.25};
 
 
@@ -97,8 +99,12 @@ namespace gazebo  {
         physics::JointPtr fr_axle_joint;
         physics::JointPtr bl_axle_joint;
         physics::JointPtr br_axle_joint;
+        physics::JointPtr fl_shock_joint;
+        physics::JointPtr fr_shock_joint;
+        physics::JointPtr bl_shock_joint;
+        physics::JointPtr br_shock_joint;
 
-        common::PID fl_pid, fr_pid, bl_pid, br_pid;
+        common::PID fl_pid, fr_pid, bl_pid, br_pid, fl_shock_pid, fr_shock_pid, bl_shock_pid, br_shock_pid;
         std::unique_ptr<ros::NodeHandle> n;
         ros::Subscriber fl_sub, fr_sub, ackermann_sub, twist_sub, joy_sub;
         ros::Publisher odo_fl_pub, odo_fr_pub, ackermann_pub;
@@ -175,6 +181,7 @@ namespace gazebo  {
             while (n->ok())
             {
                 ros_queue.callAvailable();
+
                 publish_state();
                 loop_rate.sleep();
             }
@@ -206,6 +213,30 @@ namespace gazebo  {
 
             jc->SetPositionPID(
                 fl_str_joint->GetScopedName(), fl_pid);
+
+            // front left shock
+            fl_shock_pid = common::PID(shock_p, 0, shock_d);
+            fl_shock_joint = model->GetJoint("front_left_shock_joint");
+            jc->SetPositionPID(fl_shock_joint->GetScopedName(), fl_shock_pid);
+            jc->SetPositionTarget(fl_shock_joint->GetScopedName(), 0.0);
+
+            // front right shock
+            fr_shock_pid = common::PID(shock_p, 0, shock_d);
+            fr_shock_joint = model->GetJoint("front_right_shock_joint");
+            jc->SetPositionPID(fr_shock_joint->GetScopedName(), fr_shock_pid);
+            jc->SetPositionTarget(fr_shock_joint->GetScopedName(), 0.0);
+
+            // back left shock
+            bl_shock_pid = common::PID(shock_p, 0, shock_d);
+            bl_shock_joint = model->GetJoint("back_left_shock_joint");
+            jc->SetPositionPID(bl_shock_joint->GetScopedName(), bl_shock_pid);
+            jc->SetPositionTarget(bl_shock_joint->GetScopedName(), 0.0);
+
+            // back right shock
+            br_shock_pid = common::PID(shock_p, 0, shock_d);
+            br_shock_joint = model->GetJoint("back_right_shock_joint");
+            jc->SetPositionPID(br_shock_joint->GetScopedName(), br_shock_pid);
+            jc->SetPositionTarget(br_shock_joint->GetScopedName(), 0.0);
 
             // front right str            
             fr_pid = common::PID(1, 0, 0);
