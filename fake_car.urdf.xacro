@@ -41,7 +41,8 @@
     </inertial>
   </xacro:macro>
 
-  
+  <link name="dummy">
+   </link>
 
   <link name="base_link">
     <visual>
@@ -270,7 +271,11 @@
     </inertial>
   </link>
 
-
+  <joint name="dummy_joint" type="fixed">
+     <parent link="dummy"/>
+     <child link="base_link"/>
+   </joint>
+   
   <joint name="back_left_shock_joint" type="prismatic">
     <limit lower="0" upper="${shock_travel}" effort="100" velocity="100"/>
     <axis xyz="0 0 1"/>
@@ -428,6 +433,11 @@
     <origin rpy="0 0 0" xyz="${wheelbase_length/2} 0 ${chassis_height/2 + chassis_elevation}"/>
   </joint>
 
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/fake_car</robotNamespace>
+    </plugin>
+  </gazebo>
 
   <gazebo reference="front_left_wheel">
     <mu1>${wheel_friction}</mu1>

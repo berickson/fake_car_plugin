@@ -98,7 +98,7 @@ namespace gazebo  {
         const double shock_p = 250;
         const double shock_d = 30;
         const double wheel_diameter = .112;
-        const double max_speed = 30;
+        const double max_speed = 3;
         AckermannModel car_model={0.25, 0.25};
 
 
@@ -135,11 +135,12 @@ namespace gazebo  {
             std_msgs::Int32 odo_fr;
             odo_fr.data = (int) fr_axle_joint->Position() * ticks_per_revolution / (M_2_PI);
             odo_fr_pub.publish(odo_fr);
+
         }
 
         void joy_callback(sensor_msgs::Joy msg) {
             ackermann_msgs::AckermannDriveStamped ad;
-            ad.drive.steering_angle = msg.axes[3];
+            ad.drive.steering_angle = msg.axes[0];
             ad.drive.speed = pow(fabs(msg.axes[1]),2)*sign_of(msg.axes[1]) * max_speed;
             ackermann_pub.publish(ad);
         }
@@ -207,6 +208,15 @@ namespace gazebo  {
             ROS_INFO("FakeCarPlugin() : ModelPlugin()");
         }
 
+        private: physics::JointPtr get_joint(const char * joint_name) {
+            auto joint = model->GetJoint(joint_name);
+            if(joint.get()==0) {
+                ROS_ERROR("Failed to get_joint %s", joint_name);
+            }
+            
+            return joint;
+        }
+
 
         void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
         {
@@ -224,53 +234,53 @@ namespace gazebo  {
 
             // front left str
             fl_pid = common::PID(1, 0, 0);
-            fl_str_joint  = model->GetJoint("front_left_wheel_steer_joint");
+            fl_str_joint  = get_joint("front_left_wheel_steer_joint");
 
             jc->SetPositionPID(
                 fl_str_joint->GetScopedName(), fl_pid);
 
             // front left shock
             fl_shock_pid = common::PID(shock_p, 0, shock_d);
-            fl_shock_joint = model->GetJoint("front_left_shock_joint");
+            fl_shock_joint = get_joint("front_left_shock_joint");
             jc->SetPositionPID(fl_shock_joint->GetScopedName(), fl_shock_pid);
             jc->SetPositionTarget(fl_shock_joint->GetScopedName(), 0.0);
 
             // front right shock
             fr_shock_pid = common::PID(shock_p, 0, shock_d);
-            fr_shock_joint = model->GetJoint("front_right_shock_joint");
+            fr_shock_joint = get_joint("front_right_shock_joint");
             jc->SetPositionPID(fr_shock_joint->GetScopedName(), fr_shock_pid);
             jc->SetPositionTarget(fr_shock_joint->GetScopedName(), 0.0);
 
             // back left shock
             bl_shock_pid = common::PID(shock_p, 0, shock_d);
-            bl_shock_joint = model->GetJoint("back_left_shock_joint");
+            bl_shock_joint = get_joint("back_left_shock_joint");
             jc->SetPositionPID(bl_shock_joint->GetScopedName(), bl_shock_pid);
             jc->SetPositionTarget(bl_shock_joint->GetScopedName(), 0.0);
 
             // back right shock
             br_shock_pid = common::PID(shock_p, 0, shock_d);
-            br_shock_joint = model->GetJoint("back_right_shock_joint");
+            br_shock_joint = get_joint("back_right_shock_joint");
             jc->SetPositionPID(br_shock_joint->GetScopedName(), br_shock_pid);
             jc->SetPositionTarget(br_shock_joint->GetScopedName(), 0.0);
 
             // front right str            
             fr_pid = common::PID(1, 0, 0);
-            fr_str_joint  = _model->GetJoint("front_right_wheel_steer_joint");
+            fr_str_joint  = get_joint("front_right_wheel_steer_joint");
             jc->SetPositionPID(
                 fr_str_joint->GetScopedName(), fr_pid);
 
-            fl_axle_joint = model->GetJoint("front_left_wheel_joint");
-            fr_axle_joint = model->GetJoint("front_right_wheel_joint");
+            fl_axle_joint = get_joint("front_left_wheel_joint");
+            fr_axle_joint = get_joint("front_right_wheel_joint");
 
             // back left speed
             bl_pid = common::PID(0.1, 0.01, 0.0);
-            bl_axle_joint = model->GetJoint("back_left_wheel_joint");
+            bl_axle_joint = get_joint("back_left_wheel_joint");
             jc->SetVelocityPID(
                 bl_axle_joint->GetScopedName(), bl_pid);
             
 
             br_pid = common::PID(0.1, 0.01, 0.0);
-            br_axle_joint = model->GetJoint("back_right_wheel_joint");
+            br_axle_joint = get_joint("back_right_wheel_joint");
             jc->SetVelocityPID(
                 br_axle_joint->GetScopedName(), br_pid);
             

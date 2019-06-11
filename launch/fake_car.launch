@@ -1,12 +1,18 @@
 <launch>
     <!-- load the bot into the parameter server -->
     
-    <!-- Can validate with below:
-    check_urdf <(xacro fake_car.urdf.xacro) 
+    <!-- Can validate with below: 
+    check_urdf <(xacro '$(find fake_car_plugin)/fake_car.urdf.xacro') 
     -->
+    
     <param name="robot_description"
       command="xacro '$(find fake_car_plugin)/fake_car.urdf.xacro' wheel_diameter:=0.112" 
     />
+      <rosparam file="$(find fake_car_plugin)/config/config.yaml" command="load"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <!-- <remap from="robot_description" to="different_robot_description" /> -->
+      <remap from="/joint_states" to="/fake_car/joint_states" />
+    </node>
 
     <!--<param name="robot_description" textfile="$(find fake_car)/fake_car.urdf"/>-->
     <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
@@ -15,5 +21,6 @@
     <include file="$(find fake_car_plugin)/launch/bumpy_world.launch"/>
     <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui"/>
     <node name="joy_node" pkg="joy" type="joy_node"/>
+    
     <!-- <node name="fake_car_server" pkg="fake_car" type="fake_car_server.py"/> -->
 </launch>
